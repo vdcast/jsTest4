@@ -17,6 +17,12 @@ const startGame = async (chatId) => {
     await bot.sendMessage(chatId, 'Guess the number...', gameOptions);
 }
 
+const infoOption = async (chatId, msg, text, chatIdString) => {
+    const user = await UserModel.findOne({ where: { chatId: chatIdString } })
+    await bot.sendMessage(394138933, 'ChatID: ' + chatId + '. Text of message: ' + text)
+    await bot.sendMessage(chatId, `Your name is ${msg.from.first_name}, user name @${msg.from.username}. Correct answers: ${user.right}. Wrong answers: ${user.wrong}`);
+}
+
 const start = async () => {
 
     try {
@@ -40,9 +46,22 @@ const start = async () => {
 
         try {
             if (text === '/start') {
-				const user = await UserModel.findOne({chatId})
+
+
+                const [user, created] = await UserModel.findOrCreate({
+                    where: { chatId: chatIdString }
+                });
+                console.log(user.username); // 'sdepold'
+                console.log(user.job); // This may or may not be 'Technical Lead JavaScript'
+                console.log(created); // The boolean indicating whether this instance was just created
+                if (created) {
+                    console.log(user.job); // This will certainly be 'Technical Lead JavaScript'
+                }
+
+
 				if (!user.chatId){
-					await UserModel.create({chatId})
+//                    
+//					await UserModel.create({chatId})
                     await bot.sendMessage(394138933, 'ChatID: ' + chatId + '. Text of message: ' + text)
 					await bot.sendMessage(chatId, 'Welcome to vdcast telegram bot. Nice to meet you! :) Please, pick from the following options and use my powerful skills! ^_^');
                     return bot.sendMessage(chatId, 'Choose /game to play game and check your luck today! Choose /info to get more info.');
@@ -54,9 +73,10 @@ const start = async () => {
 				}
             }
             if (text === '/info') {
-                const user = await UserModel.findOne({chatId})
-                await bot.sendMessage(394138933, 'ChatID: ' + chatId + '. Text of message: ' + text)
-                return bot.sendMessage(chatId, `Your name is ${msg.from.first_name}, user name @${msg.from.username}. Correct answers: ${user.right}. Wrong answers: ${user.wrong}`);
+//                const user = await UserModel.findOne({ where: { chatId: chatIdString } })
+//                await bot.sendMessage(394138933, 'ChatID: ' + chatId + '. Text of message: ' + text)
+//                return bot.sendMessage(chatId, `Your name is ${msg.from.first_name}, user name @${msg.from.username}. Correct answers: ${user.right}. Wrong answers: ${user.wrong}`);
+                return infoOption(chatId, msg, text, chatIdString);
             }
             if (text === '/game') {
                 await bot.sendMessage(394138933, 'ChatID: ' + chatId + '. Text of message: ' + text)
@@ -77,10 +97,14 @@ const start = async () => {
     bot.on('callback_query', async msg => {
         const data = msg.data;
         const chatId = msg.message.chat.id;
-        if (data === '/again') {
+        bot.sendMessage(394138933, chatId + ' | Chose: ' + data)
+        if (data == '/again') {
             return startGame(chatId)
         }
-        const user = await UserModel.findOne({chatId})
+        if (data == '/info') {
+            return infoOption(chatId, msg, msg.text, chatId.toString());
+        }
+        const user = await UserModel.findOne({ where: { chatId: chatId.toString() } })
         if (data == chats[chatId]) {
             user.right += 1;
             await bot.sendMessage(chatId, `You've chosen: ${data}, bot made: ${chats[chatId]}`);
